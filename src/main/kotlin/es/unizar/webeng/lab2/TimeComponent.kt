@@ -1,9 +1,11 @@
 package es.unizar.webeng.lab2
 
+import es.unizar.webeng.lab2.exception.InvalidTimeZoneException
 import org.springframework.stereotype.Service
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.DateTimeException
 import java.time.LocalDateTime
 import java.time.ZoneId
 
@@ -33,5 +35,19 @@ class TimeController(
     @GetMapping("/time")
     fun time(
         @RequestParam(required = false) zone: String?,
-    ): TimeDTO = (zone?.let { service.now(ZoneId.of(it)) } ?: service.now()).toDTO()
+    ): TimeDTO {
+        val time =
+            if (zone == null) {
+                service.now()
+            } else {
+                val zoneId =
+                    try {
+                        ZoneId.of(zone)
+                    } catch (_: DateTimeException) {
+                        throw InvalidTimeZoneException(zone)
+                    }
+                service.now(zoneId)
+            }
+        return time.toDTO()
+    }
 }

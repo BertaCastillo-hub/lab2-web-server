@@ -8,3 +8,7 @@ server:
     key-alias: localhost
   http2:
     enabled: true
+spring:
+  mvc:
+    problemdetails:
+      enabled: true
