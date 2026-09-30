@@ -13,6 +13,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -24,6 +26,8 @@ class TimeControllerTest {
         fun fixedTimeProvider(): TimeProvider =
             object : TimeProvider {
                 override fun now(): LocalDateTime = LocalDateTime.parse("2026-09-30T12:34:56")
+
+                override fun now(zone: ZoneId): LocalDateTime = now().atZone(ZoneOffset.UTC).withZoneSameInstant(zone).toLocalDateTime()
             }
     }
 
@@ -36,5 +40,13 @@ class TimeControllerTest {
             .perform(get("/time").accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.time").value("2026-09-30T12:34:56"))
+    }
+
+    @Test
+    fun timeUsesRequestedZone() {
+        mockMvc
+            .perform(get("/time").param("zone", "Europe/Madrid").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.time").value("2026-09-30T14:34:56"))
     }
 }
