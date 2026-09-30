@@ -42,8 +42,27 @@ class ApplicationTests {
             )
 
         assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
-        assertTrue(response.body!!.contains("Página no encontrada"))
+        assertTrue(response.body!!.contains("Página no encontrada"), response.body)
         assertTrue(response.body!!.contains("404"))
         assertTrue(response.body!!.contains("/missing"))
+    }
+
+    @Test
+    fun unknownPathReturnsProblemJsonForApiClients() {
+        val headers = HttpHeaders()
+        headers.accept = listOf(MediaType.APPLICATION_JSON)
+
+        val response =
+            client.exchange(
+                "http://127.0.0.1:$port/missing",
+                HttpMethod.GET,
+                HttpEntity<Void>(headers),
+                String::class.java,
+            )
+
+        assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
+        assertEquals(MediaType.APPLICATION_PROBLEM_JSON, response.headers.contentType)
+        assertTrue(response.body!!.contains("\"status\":404"))
+        assertTrue(response.body!!.contains("\"instance\":\"/missing\""))
     }
 }
