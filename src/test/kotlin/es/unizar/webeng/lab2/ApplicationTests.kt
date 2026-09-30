@@ -43,5 +43,7 @@ class ApplicationTests {
 
         assertEquals(HttpStatus.NOT_FOUND, response.statusCode)
         assertTrue(response.body!!.contains("Página no encontrada"))
+        assertTrue(response.body!!.contains("404"))
+        assertTrue(response.body!!.contains("/missing"))
     }
 }
