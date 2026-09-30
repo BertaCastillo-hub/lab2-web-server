@@ -30,4 +30,9 @@ src/test/kotlin/es/unizar/webeng/lab2/ApplicationTests.kt
 docs/GUIDE.md
 ```
 
-You add the error page, the `/time` endpoint, and the TLS configuration. They are not in this starter.
+## Additions
+
+- Error page
+- `/time` endpoint
+- TLS configuration.
+
