@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDateTime
@@ -48,5 +49,33 @@ class TimeControllerTest {
             .perform(get("/time").param("zone", "Europe/Madrid").accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.time").value("2026-09-30T14:34:56"))
+    }
+
+    @Test
+    fun timeIsPlainTextWhenRequested() {
+        mockMvc
+            .perform(get("/time").param("zone", "UTC").accept(MediaType.TEXT_PLAIN))
+            .andExpect(status().isOk)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
+            .andExpect(content().string("2026-09-30 12:34:56 UTC"))
+    }
+
+    @Test
+    fun timeIsHtmlWhenRequested() {
+        mockMvc
+            .perform(get("/time").param("zone", "UTC").accept(MediaType.TEXT_HTML))
+            .andExpect(status().isOk)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("<div class=\"time-widget\">")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("2026-09-30T12:34:56")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("Zone: UTC")))
+    }
+
+    @Test
+    fun timeDefaultsToJsonWhenAcceptIsMissing() {
+        mockMvc
+            .perform(get("/time"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.time").value("2026-09-30T12:34:56"))
     }
 }
