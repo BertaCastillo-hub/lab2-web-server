@@ -1,16 +1,244 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Error | Lab 2</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Error | Lab 2</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #eef0f7;
+            --text: #181a23;
+            --muted: #686d7c;
+            --accent: #7357d8;
+            --accent-light: #927ae8;
+            --danger: #e45c72;
+            --line: rgba(24, 26, 35, 0.10);
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+                         BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(
+                    circle at 18% 18%,
+                    rgba(115, 87, 216, 0.16),
+                    transparent 28%
+                ),
+                radial-gradient(
+                    circle at 82% 78%,
+                    rgba(228, 92, 114, 0.11),
+                    transparent 30%
+                ),
+                var(--bg);
+            overflow: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(
+                    rgba(24, 26, 35, 0.035) 1px,
+                    transparent 1px
+                ),
+                linear-gradient(
+                    90deg,
+                    rgba(24, 26, 35, 0.035) 1px,
+                    transparent 1px
+                );
+            background-size: 45px 45px;
+            mask-image: linear-gradient(
+                to bottom,
+                transparent,
+                black 20%,
+                black 80%,
+                transparent
+            );
+            pointer-events: none;
+        }
+
+        main {
+            position: relative;
+            width: min(760px, 100%);
+            text-align: center;
+        }
+
+        .status {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 12px;
+            font-size: clamp(7rem, 22vw, 13rem);
+            line-height: 0.85;
+            font-weight: 900;
+            letter-spacing: -0.09em;
+            color: transparent;
+            background: linear-gradient(
+                135deg,
+                #303341 0%,
+                var(--accent) 48%,
+                var(--danger) 100%
+            );
+            -webkit-background-clip: text;
+            background-clip: text;
+            text-shadow: 0 10px 35px rgba(115, 87, 216, 0.12);
+        }
+
+        .label {
+            margin-bottom: 26px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.24em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        h1 {
+            margin-bottom: 12px;
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 800;
+            letter-spacing: -0.04em;
+        }
+
+        .description {
+            max-width: 520px;
+            margin: 0 auto 34px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--muted);
+        }
+
+        .details {
+            display: flex;
+            justify-content: center;
+            gap: 34px;
+            margin-bottom: 36px;
+        }
+
+        .detail {
+            min-width: 150px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+            text-align: left;
+        }
+
+        .detail span:first-child {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .detail span:last-child {
+            display: block;
+            overflow: hidden;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            font-size: 0.9rem;
+            color: var(--text);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 190px;
+            padding: 15px 24px;
+            border-radius: 14px;
+            color: white;
+            background: linear-gradient(
+                135deg,
+                var(--accent),
+                #6042c6
+            );
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 700;
+            box-shadow: 0 12px 30px rgba(96, 66, 198, 0.25);
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease,
+                filter 0.2s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            filter: brightness(1.06);
+            box-shadow: 0 18px 36px rgba(96, 66, 198, 0.32);
+        }
+
+        .button:active {
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 24px;
+            }
+
+            .details {
+                flex-direction: column;
+                gap: 18px;
+                max-width: 280px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .detail {
+                min-width: 0;
+            }
+
+            .description {
+                font-size: 0.98rem;
+            }
+        }
+    </style>
 </head>
+
 <body>
 <main>
-	<h1>Página no encontrada</h1>
-	<p>El recurso que buscas no existe.</p>
-	<p>Estado: <span th:text="${status}">404</span></p>
-	<p>Ruta: <span th:text="${path}">/missing</span></p>
+    <div class="status" th:text="${status}">404</div>
+
+    <div class="label">Error del sistema</div>
+
+    <h1>Página no encontrada</h1>
+
+    <p class="description">
+        El recurso que buscas no existe o ya no está disponible.
+    </p>
+
+    <div class="details">
+        <div class="detail">
+            <span>Estado</span>
+            <span th:text="${status}">404</span>
+        </div>
+
+        <div class="detail">
+            <span>Ruta</span>
+            <span th:text="${path}">/missing</span>
+        </div>
+    </div>
+
+    <a class="button" href="/time">
+        Acceder a /time
+    </a>
 </main>
 </body>
 </html>
