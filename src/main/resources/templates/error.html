@@ -218,10 +218,14 @@
 
     <div class="label">Error del sistema</div>
 
-    <h1>Página no encontrada</h1>
+    <h1 th:if="${status == 404}">Página no encontrada</h1>
+    <h1 th:unless="${status == 404}">Error de solicitud</h1>
 
-    <p class="description">
+    <p class="description" th:if="${status == 404}">
         El recurso que buscas no existe o ya no está disponible.
+    </p>
+    <p class="description" th:unless="${status == 404}">
+        No se pudo procesar la solicitud.
     </p>
 
     <div class="details">
