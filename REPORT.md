@@ -14,6 +14,10 @@ I set out to complete the three required parts of the lab and then add their ext
 3. I planned to enable HTTP/2 (`h2` over ALPN) and TLS on port 8443 with a self-signed certificate.
     - Extension: I planned to include `IP:127.0.0.1` alongside `DNS:localhost` in the certificate SAN, select the PKCS12 alias explicitly, and verify that ALPN still selects `h2`.
 
+### Bonus
+
+I also planned two extensions on separate branches: RFC 9457 Problem Details for API errors on `feature/rfc_9457`, and content negotiation on `/time` on `feature/content_negotiation`. The latter covers response format, language, compression, and conditional request headers using Spring Boot's built-in support.
+
 ## What I changed
 
 ### Objective
@@ -43,6 +47,11 @@ openssl pkcs12 -export \
 	-passout pass:secret
 ```
 
+### Bonus
+
+1. On `feature/rfc_9457`, I separated API error responses from browser error pages using Spring MVC content negotiation. Requests accepting HTML render the error page; API requests receive an RFC 9457 `ProblemDetail` response. Invalid time zones return 400 with an `invalidZone` extension, and unexpected API failures return a sanitized 500 response. I added `exception/GlobalExceptionHandler.kt` and `exception/HtmlErrorNegotiationHandler.kt`, and updated `TimeComponent.kt`, `application.yml` and `ApplicationTests.kt`.
+2. On `feature/content_negotiation`, I retained JSON, plain text, and HTML representations of `/time`, selected through `Accept`. I added English and Spanish message bundles and use Spring's resolved `Locale` to translate the response text. I enabled server-side compression and added conditional response handling for ETag and Last-Modified. Automated tests cover these responses, including gzip from a running embedded server. I added `config/WebConfig.kt`, `resources/messages.properties`, `resources/messages_es.properties`, and `TimeCompressionTest.kt`. I updated `TimeComponent.kt`, `application.yml` and `TimeControllerTest.kt`.
+
 
 ## Technical decisions
 
@@ -55,6 +64,11 @@ openssl pkcs12 -export \
 2.2 Bonus: I use `ZoneId` to produce the requested local time. Invalid zone names are treated as client errors rather than server errors.
 3. I used a self-signed RSA certificate because the lab has no certificate authority. Spring Boot loads the PKCS12 keystore, and embedded Tomcat terminates TLS and negotiates HTTP/2 through ALPN.
 3.1 Bonus: I included DNS and IP SAN entries for localhost requests and explicitly configured the keystore alias. I disabled SSL in test resources so automated tests continue to use plain HTTP.
+
+### Bonus
+
+1. I used separate Spring advice handlers for HTML and API errors, selected by the request's accepted media type. `ProblemDetail` provides the standard RFC 9457 fields, while the generic 500 response avoids exposing internal exception details.
+2. I used Spring's `MessageSource` and the resolved `Locale` for `Accept-Language`, and Spring Boot's server compression settings for `Accept-Encoding`. `WebRequest.checkNotModified` handles `If-Modified-Since`; `ShallowEtagHeaderFilter` calculates ETags. I configured weak ETags because Tomcat skips compression when a response has a strong ETag. The `/time` response also varies on `Accept`, `Accept-Language`, and `Accept-Encoding` so caches distinguish representations.
 
 ## How I verified
 
@@ -90,6 +104,72 @@ curl -vk --http2 'https://127.0.0.1:8443/time?zone=Europe/Madrid'
 ```
 
 On a later retry, the server could not bind because port 8443 was already occupied. A subsequent curl request could not connect after that server process exited, so I do not count that retry as a successful manual verification. The automated check passed after the RFC 9457 changes.
+
+### Bonus
+
+1. The RFC 9457 tests verify that API clients receive Problem Details and that browser requests continue to render the HTML error page. They cover invalid time zones and the relevant error statuses and fields.
+2. I added tests for the JSON, plain-text, and HTML representations, Spanish translations, ETag and Last-Modified conditional requests, and gzip using an embedded server. I also ran the complete project check:
+
+```bash
+./gradlew check
+```
+
+Since a browser address bar does not let me set `Accept`, I used curl to request each representation:
+
+```bash
+curl -k -H "Accept: application/json" "https://localhost:8443/time?zone=UTC"
+```
+
+```bash
+curl -k -H "Accept: text/plain" "https://localhost:8443/time?zone=UTC"
+```
+
+```bash
+curl -k -H "Accept: text/html" "https://localhost:8443/time?zone=UTC"
+```
+
+I checked Spanish localization with:
+
+```bash
+curl -k -i -H "Accept: application/json" -H "Accept-Language: es-ES" \
+    "https://localhost:8443/time?zone=UTC"
+```
+
+I checked transparent gzip compression with:
+
+```bash
+curl -k --compressed -D - -o /dev/null \
+    -H "Accept: application/json" -H "Accept-Encoding: gzip" \
+    "https://localhost:8443/time?zone=UTC"
+```
+
+To check `If-None-Match`, the first command saves the returned ETag and the second sends it back:
+
+```bash
+curl -k -i -D /tmp/time-etag.headers \
+    -H "Accept: text/plain" "https://localhost:8443/time?zone=UTC"
+```
+
+```bash
+curl -k -i \
+    -H "If-None-Match: $(awk 'tolower($1) == "etag:" { sub("\\r$", "", $2); print $2 }' /tmp/time-etag.headers)" \
+    -H "Accept: text/plain" "https://localhost:8443/time?zone=UTC"
+```
+
+I checked `If-Modified-Since` in the same way using the returned `Last-Modified` date:
+
+```bash
+curl -k -i -D /tmp/time-last-modified.headers \
+    -H "Accept: application/json" "https://localhost:8443/time?zone=UTC"
+```
+
+```bash
+curl -k -i \
+    -H "If-Modified-Since: $(awk 'tolower($1) == "last-modified:" { sub("\\r$", ""); sub(/^[^:]*:[[:space:]]*/, ""); print }' /tmp/time-last-modified.headers)" \
+    -H "Accept: application/json" "https://localhost:8443/time?zone=UTC"
+```
+
+The validation requests return 304 only while the corresponding `/time` representation has not changed. Since the endpoint reports the current time, a second request may return 200 if the time changes between requests.
 
 ## AI disclosure
 
