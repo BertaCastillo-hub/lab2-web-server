@@ -29,10 +29,10 @@ I implemented the required application behavior and tests in the existing Kotlin
 1. I added `src/main/resources/templates/error.html` and updated `ApplicationTests.kt` to request an unknown path from a real random-port server with `Accept: text/html`.
     - Extension: I displayed Spring's error status and request path in the template and asserted both in the 404 test.
     - Extension: I enabled Spring MVC Problem Details and added exception advice. API requests receive `application/problem+json`; invalid time zones produce a 400 response with the `invalidZone` extension, and unexpected API exceptions produce a sanitized 500 response. HTML requests continue to use the Thymeleaf page.
-2. I added `TimeDTO`, `TimeProvider`, `TimeService`, the `LocalDateTime.toDTO()` extension, and the `/time` controller in `TimeComponent.kt`. I added MockMvc coverage in `TimeControllerTest.kt`.
+2. I added `TimeDTO`, `TimeProvider`, `TimeService`, the `LocalDateTime.toDTO()` extension and the `/time` controller in `TimeComponent.kt`. I added MockMvc coverage in `TimeControllerTest.kt`.
     - Extension: I supplied a fixed `TimeProvider` from the test configuration and asserted its exact serialized timestamp.
     - Extension: I added optional `zone` handling to `/time`; the tests check the Madrid conversion and the RFC 9457 response for an invalid zone.
-3. I added `openssl-localhost.cnf`, generated the local certificate and key, packaged them in `src/main/resources/localhost.p12` with password `secret`, and configured TLS plus HTTP/2 on port 8443 in `src/main/resources/application.yml`. The certificate, key, and OpenSSL configuration are ignored by Git; the PKCS12 keystore is tracked.
+3. I added `openssl-localhost.cnf`, generated the local certificate and key, packaged them in `src/main/resources/localhost.p12` with password `secret` and configured TLS plus HTTP/2 on port 8443 in `src/main/resources/application.yml`. The certificate, key and OpenSSL configuration are ignored by Git; the PKCS12 keystore is tracked.
     - Extension: I added the loopback IP to the certificate SAN and set the server's key alias to `localhost`, matching the PKCS12 alias.
 
 I generated and packaged the certificate with:
@@ -52,7 +52,7 @@ openssl pkcs12 -export \
 ### Bonus
 
 1. On `feature/rfc_9457`, I separated API error responses from browser error pages using Spring MVC content negotiation. Requests accepting HTML render the error page; API requests receive an RFC 9457 `ProblemDetail` response. Invalid time zones return 400 with an `invalidZone` extension, and unexpected API failures return a sanitized 500 response. I added `exception/GlobalExceptionHandler.kt` and `exception/HtmlErrorNegotiationHandler.kt`, and updated `TimeComponent.kt`, `application.yml` and `ApplicationTests.kt`.
-2. On `feature/content_negotiation`, I retained JSON, plain text, and HTML representations of `/time`, selected through `Accept`. I added English and Spanish message bundles and use Spring's resolved `Locale` to translate the response text. I enabled server-side compression and added conditional response handling for ETag and Last-Modified. Automated tests cover these responses, including gzip from a running embedded server. I added `config/WebConfig.kt`, `resources/messages.properties`, `resources/messages_es.properties`, and `TimeCompressionTest.kt`. I updated `TimeComponent.kt`, `application.yml` and `TimeControllerTest.kt`.
+2. On `feature/content_negotiation`, I retained JSON, plain text and HTML representations of `/time`, selected through `Accept`. I added English and Spanish message bundles and use Spring's resolved `Locale` to translate the response text. I enabled server-side compression and added conditional response handling for ETag and Last-Modified. Automated tests cover these responses, including gzip from a running embedded server. I added `config/WebConfig.kt`, `resources/messages.properties`, `resources/messages_es.properties` and `TimeCompressionTest.kt`. I updated `TimeComponent.kt`, `application.yml` and `TimeControllerTest.kt`.
 
 
 ## Technical decisions
@@ -77,7 +77,7 @@ openssl pkcs12 -export \
 ### Objective
 
 1. I ran the test suite to verify that browser requests still render HTML and API requests receive RFC 9457 responses. The tests check the 400 status, the problem media type and fields, the HTML error content and the invalid-zone extension.
-2. I verified the normal time response, fixed timestamp, requested-zone conversion, and invalid-zone behavior with MockMvc tests.
+2. I verified the normal time response, fixed timestamp, requested-zone conversion and invalid-zone behavior with MockMvc tests.
 3. I ran the full project check, which includes the test suite and ktlint:
 
 ```bash
@@ -91,7 +91,7 @@ openssl x509 -in localhost.crt -noout -ext subjectAltName
 keytool -list -storetype PKCS12 -keystore src/main/resources/localhost.p12 -storepass secret
 ```
 
-During a successful live run, I started the server and queried the IP address over HTTP/2. Curl reported `ALPN: server accepted h2`, returned HTTP/2 200, and displayed the JSON time response:
+During a successful live run, I started the server and queried the IP address over HTTP/2. Curl reported `ALPN: server accepted h2`, returned HTTP/2 200 and displayed the JSON time response:
 
 I started the server in one terminal:
 
@@ -110,7 +110,7 @@ The automated and manual checks were successful.
 ### Bonus
 
 1. The RFC 9457 tests verify that API clients receive Problem Details and that browser requests continue to render the HTML error page. They cover invalid time zones and the relevant error statuses and fields.
-2. I added tests for the JSON, plain-text, and HTML representations, Spanish translations, ETag and Last-Modified conditional requests, and gzip using an embedded server. I also ran the complete project check:
+2. I added tests for the JSON, plain-text and HTML representations, Spanish translations, ETag and Last-Modified conditional requests, and gzip using an embedded server. I also ran the complete project check:
 
 ```bash
 ./gradlew check
@@ -175,9 +175,15 @@ The validation requests return 304 only while the corresponding `/time` represen
 
 ## Comparison with other classmates work
 
-Classmate A and B proposed similar bonus functionality to the one I implemented. Here I outstand why our proposals are similar but specially why they are different.
+Classmate A and B proposed similar bonus functionality to the one I implemented. Here I highlight why our proposals are similar but especially why they are different.
 
+### Similarities
 
+All three projects implement the custom error page, `/time` endpoint and HTTPS/HTTP/2 setup. For the bonus, we kept `/time` as the time resource and used Spring support for content negotiation, localization, compression and conditional requests, with automated tests for the added behavior.
+
+### Differences
+
+I chose JSON, plain text and HTML; both classmates chose JSON, XML and HTML. My HTML is a lightweight time widget, unlike Classmate A's Zaragoza tram panel or Classmate B's MVC views selected with `ContentNegotiatingViewResolver`. I localized the greeting in English and Spanish; Classmate A also supports French and conditionally adds a `text` value, while Classmate B translates a `label` value. For compression, my 1-byte threshold allows even short `/time` responses to be compressed, like Classmate B's approach; Classmate A keeps Tomcat's 2 KB threshold and compresses the larger HTML panel. For caching, I use `ShallowEtagHeaderFilter` and set `Last-Modified` on the response. Classmate A builds validators around the current-minute version, while Classmate B caches a time snapshot per minute; neither uses my filter-based ETag approach.
 
 ## AI disclosure
 

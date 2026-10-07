@@ -39,5 +39,5 @@ docs/GUIDE.md
 - ***feature/rfc_9457* branch**: 
     - Separates browser error pages from API errors, which are returned as RFC 9457 Problem Details with appropriate status and error information.
 - ***feature/content_negotiation***: 
-    - Lets clients select JSON, plain text, or HTML and adds localized messages, transparent gzip compression, and ETag/Last-Modified cache validation.
+    - Lets clients select JSON, plain text or HTML and adds localized messages, transparent gzip compression and ETag/Last-Modified cache validation.
 
